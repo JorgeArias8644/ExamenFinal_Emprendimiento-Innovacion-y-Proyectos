@@ -177,9 +177,13 @@ Todas las operaciones anteriores llegan a un multiplexor de 4 entradas y una sal
 Todo lo anterior conforma un bloque de 1 bit de ALU por lo que es necesario formar un bloque con 8 bloques de 1 bit ALU para formarlo, esto se realiza de manera jerarquica de acuerdo al orden de los bits.
 
 
+## Imagenes de la implementación
 
+![CLA](https://github.com/JorgeArias8644/ExamenFinal_Emprendimiento-Innovacion-y-Proyectos/blob/main/Imagenes%20ALU/CLA.png)
+![ALU 1bit](https://github.com/JorgeArias8644/ExamenFinal_Emprendimiento-Innovacion-y-Proyectos/blob/main/Imagenes%20ALU/ALU_1bit.png)
+![ALU 8bits](https://github.com/JorgeArias8644/ExamenFinal_Emprendimiento-Innovacion-y-Proyectos/blob/main/Imagenes%20ALU/ALU_8bits.png)
 
-
+## Video explicativo
 
 
 
