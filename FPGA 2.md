@@ -37,145 +37,147 @@ Se requiere crear una maquina de estado Moore
 module moore(
     input logic clk,         // Señal de reloj
     input logic reset,       // Señal de reset asíncrona
-    input logic m,           // Input: Moneda insertada (1 = moneda, 0 = no moneda)
-    input logic a,           // Input: Avanzar/Seleccionar (1 = seleccionar, 0 = no seleccionar)
-    output logic dispense,   // Output: Dispensar producto (1 = dispensar)
-    output logic [2:0] c     // Output: Muestra el crédito acumulado (Q0.00 a Q5.00)
+    input logic m,           // Moneda insertada
+    input logic a,           // Seleccionar producto
+    output logic dispense,   // Señal de dispensación
+    output logic [2:0] c     // Crédito acumulado
 );
 
-    // Definición de los estados de la FSM
     typedef enum logic [2:0] {S0, S1, S2, S3, S4, S5} statetype;
-
-    // Variables para el estado actual y el próximo estado
     statetype current_state, next_state;
 
-    // --- Componente 1: Registro de Estado (Lógica Secuencial) ---
-    // Este bloque actualiza el estado actual en cada flanco de reloj positivo,
-    // o lo resetea a S0 si 'reset' está activo.
+    // Registro de estado
     always_ff @(posedge clk, posedge reset) begin
-        if (reset) begin
-            current_state <= S0; // Reset asíncrono al estado inicial (S0)
-        end else begin
-            current_state <= next_state; // Transición al próximo estado
-        end
+        if (reset)
+            current_state <= S0;
+        else
+            current_state <= next_state;
     end
 
-    // --- Componente 2: Lógica del Próximo Estado (Lógica Combinacional) ---
-    // Este bloque determina el próximo estado basado en el estado actual y las entradas.
+    // Lógica de transición y salida
     always_comb begin
-        next_state = current_state; // Por defecto, mantenerse en el estado actual
-        dispense = 1'b0;            // Por defecto, no dispensar
+        next_state = current_state;
+        dispense = 1'b0;
 
-        // Lógica de transición de estados según la tabla de verdad
         case (current_state)
-            S0: begin // Estado 0: Crédito 0
-                if (m == 1'b1 && a == 1'b0) begin
-                    next_state = S1; // Moneda insertada, avanza a S1 (Crédito 1)
-                end else if (m == 1'b0 && a == 1'b1) begin
-                    // "Aceptado sin moneda, no action" - No se mueve de S0
+            S0: begin
+                if (m && !a) next_state = S1;
+                end
+            S1: begin
+                if (m && !a) next_state = S2;
+                else if (!m && a) begin
                     next_state = S0;
-                end else if (m == 1'b1 && a == 1'b1) begin
-                    // "No es posible" - Se queda en S0
+                    dispense = 1'b1;
+                end
+            end
+            S2: begin
+                if (m && !a) next_state = S3;
+                else if (!m && a) begin
                     next_state = S0;
-                end else begin // m=0, a=0
-                    next_state = S0; // "No action, stay" - Se queda en S0
+                    dispense = 1'b1;
                 end
             end
-
-            S1: begin // Estado 1: Crédito 1
-                if (m == 1'b1 && a == 1'b0) begin
-                    next_state = S2; // Moneda insertada, avanza a S2 (Crédito 2)
-                end else if (m == 1'b0 && a == 1'b1) begin
-                    next_state = S0;      // Seleccionado, regresa a S0
-                    dispense = 1'b1;      // Dispensar producto
-                end else if (m == 1'b1 && a == 1'b1) begin
-                    // "No es posible" - Se queda en S1
-                    next_state = S1;
-                end else begin // m=0, a=0
-                    next_state = S1; // "No action, stay" - Se queda en S1
+            S3: begin
+                if (m && !a) next_state = S4;
+                else if (!m && a) begin
+                    next_state = S0;
+                    dispense = 1'b1;
                 end
             end
-
-            S2: begin // Estado 2: Crédito 2
-                if (m == 1'b1 && a == 1'b0) begin
-                    next_state = S3; // Moneda insertada, avanza a S3 (Crédito 3)
-                end else if (m == 1'b0 && a == 1'b1) begin
-                    next_state = S0;      // Seleccionado, regresa a S0
-                    dispense = 1'b1;      // Dispensar producto
-                end else if (m == 1'b1 && a == 1'b1) begin
-                    // "No es posible" - Se queda en S2
-                    next_state = S2;
-                end else begin // m=0, a=0
-                    next_state = S2; // "No action, stay" - Se queda en S2
+            S4: begin
+                if (m && !a) next_state = S5;
+                else if (!m && a) begin
+                    next_state = S0;
+                    dispense = 1'b1;
                 end
             end
-
-            S3: begin // Estado 3: Crédito 3
-                if (m == 1'b1 && a == 1'b0) begin
-                    next_state = S4; // Moneda insertada, avanza a S4 (Crédito 4)
-                end else if (m == 1'b0 && a == 1'b1) begin
-                    next_state = S0;      // Seleccionado, regresa a S0
-                    dispense = 1'b1;      // Dispensar producto
-                end else if (m == 1'b1 && a == 1'b1) begin
-                    // "No es posible" - Se queda en S3
-                    next_state = S3;
-                end else begin // m=0, a=0
-                    next_state = S3; // "No action, stay" - Se queda en S3
+            S5: begin
+                if (!m && a) begin
+                    next_state = S0;
+                    dispense = 1'b1;
                 end
             end
-
-            S4: begin // Estado 4: Crédito 4
-                if (m == 1'b1 && a == 1'b0) begin
-                    next_state = S5; // Moneda insertada, avanza a S5 (Crédito 5)
-                end else if (m == 1'b0 && a == 1'b1) begin
-                    next_state = S0;      // Seleccionado, regresa a S0
-                    dispense = 1'b1;      // Dispensar producto
-                end else if (m == 1'b1 && a == 1'b1) begin
-                    // "No es posible" - Se queda en S4
-                    next_state = S4;
-                end else begin // m=0, a=0
-                    next_state = S4; // "No action, stay" - Se queda en S4
-                end
-            end
-
-            S5: begin // Estado 5: Crédito 5
-                if (m == 1'b0 && a == 1'b1) begin
-                    next_state = S0;      // Seleccionado, regresa a S0
-                    dispense = 1'b1;      // Dispensar producto
-                end else if (m == 1'b1 && a == 1'b0) begin
-                    next_state = S5;      // Permanece en S5, no acepta más dinero
-                end else if (m == 1'b1 && a == 1'b1) begin
-                    // "No es posible" - Se queda en S5
-                    next_state = S5;
-                end else begin // m=0, a=0
-                    next_state = S5; // "No action, stay" - Se queda en S5
-                end
-            end
-
-            default: begin // Estado por defecto (en caso de un estado no definido)
-                next_state = S0; // Volver al estado inicial
+            default: begin
+                next_state = S0;
                 dispense = 1'b0;
             end
         endcase
     end
 
-    // --- Componente 3: Lógica de Salida (Lógica Combinacional) ---
-    // Este bloque mapea el estado actual a la salida de visualización de crédito.
+    // Lógica de salida del crédito
     always_comb begin
         case (current_state)
-            S0: c = 3'b000; // Q0.00
-            S1: c = 3'b001; // Q1.00
-            S2: c = 3'b010; // Q2.00
-            S3: c = 3'b011; // Q3.00
-            S4: c = 3'b100; // Q4.00
-            S5: c = 3'b101; // Q5.00
+            S0: c = 3'b000;
+            S1: c = 3'b001;
+            S2: c = 3'b010;
+            S3: c = 3'b011;
+            S4: c = 3'b100;
+            S5: c = 3'b101;
             default: c = 3'b000;
         endcase
     end
-
 endmodule
 ~~~
 
+## Descripción del Módulo "moore" 
+
+Este módulo SystemVerilog, llamado moore, implementa una máquina de estados finita de tipo Moore. Las máquinas de Moore se distinguen porque sus salidas dependen únicamente del estado actual en el que se encuentra la máquina, no directamente de las entradas en el mismo ciclo de reloj. Este módulo parece simular la lógica de acumulación de crédito y selección en una máquina expendedora.
+
+#### Entradas y Salidas
+El módulo tiene las siguientes conexiones:
+
+clk: La señal de reloj, que sincroniza todas las operaciones del módulo.
+reset: Una señal de reinicio asíncrono que, cuando está activa, fuerza a la máquina a su estado inicial.
+m (input logic): Representa la inserción de una moneda. Cuando está en 1, indica que se ha insertado una moneda.
+a (input logic): Representa la selección de un producto por parte del usuario. Cuando está en 1, indica que se ha presionado un botón de selección.
+dispense (output logic): Una señal de salida que se activa (1'b1) cuando la máquina ha alcanzado el crédito suficiente y el usuario ha seleccionado un producto, indicando que un producto debe ser dispensado.
+c (output logic [2:0]): Representa el crédito acumulado o el código del producto seleccionado, que es una salida de 3 bits.
+Estados Internos
+El módulo define seis estados posibles utilizando un typedef enum logic [2:0]:
+
+S0: Estado inicial, probablemente 0 crédito.
+S1: Acumulado un nivel de crédito (por ejemplo, 1 unidad de crédito).
+S2: Acumulado un segundo nivel de crédito (por ejemplo, 2 unidades de crédito).
+S3: Acumulado un tercer nivel de crédito (por ejemplo, 3 unidades de crédito).
+S4: Acumulado un cuarto nivel de crédito (por ejemplo, 4 unidades de crédito).
+S5: Acumulado un quinto nivel de crédito (por ejemplo, 5 unidades de crédito).
+Las variables current_state y next_state se usan para gestionar el estado actual y el próximo estado al que la máquina transicionará.
+
+#### Comportamiento Lógico
+El módulo se divide en tres bloques always principales, cada uno con una función específica:
+
+Registro de Estado (always_ff):
+Este bloque síncrono (always_ff @(posedge clk, posedge reset)) es responsable de actualizar el current_state en cada flanco de subida del reloj.
+
+Si reset está activo, current_state se fuerza a S0.
+De lo contrario, current_state toma el valor de next_state calculado en el ciclo anterior.
+Lógica de Transición y Salida (always_comb):
+Este bloque combinacional (always_comb) determina el next_state y la salida dispense basándose en el current_state y las entradas m y a.
+
+#### Transición de Estados:
+
+Desde S0 hasta S4: Si se inserta una moneda (m es 1) y no se ha seleccionado un producto (a es 0), la máquina avanza al siguiente estado secuencial (ej. S0 a S1, S1 a S2, etc.), acumulando crédito.
+Desde S1 hasta S5: Si el usuario selecciona un producto (a es 1) y no está insertando una moneda (m es 0), la máquina regresa al estado S0 (crédito consumido/transacción completada) y se activa la señal dispense. Esto implica que se ha alcanzado suficiente crédito para una compra y se ha solicitado un producto.
+El estado S5 solo permite la transición de vuelta a S0 si se selecciona un producto.
+Salida dispense:
+La señal dispense se activa (1'b1) solo cuando se transiciona de cualquier estado (S1 a S5) de vuelta a S0 debido a una selección de producto (a). Por defecto, dispense se mantiene en 0.
+
+Lógica de Salida del Crédito (always_comb):
+Este bloque combinacional asigna el valor de la salida c (crédito acumulado/código de producto) directamente en función del current_state. Esto es una característica clave de una máquina de Moore, ya que la salida depende únicamente del estado actual, no de las entradas directas en el mismo ciclo para la salida c.
+
+S0 corresponde a 3'b000 (0 crédito).
+S1 corresponde a 3'b001 (1 crédito).
+S2 corresponde a 3'b010 (2 créditos).
+S3 corresponde a 3'b011 (3 créditos).
+S4 corresponde a 3'b100 (4 créditos).
+S5 corresponde a 3'b101 (5 créditos).
+Para cualquier estado no definido (por ejemplo, default), c se establece en 3'b000.
+#### Funcionalidad General
+En resumen, este módulo moore simula la acumulación de "crédito" (representado por los estados S0 a S5) en una máquina expendedora. Cada vez que se inserta una moneda (m), la máquina avanza un estado, incrementando el crédito. Cuando el usuario decide seleccionar un producto (a) y el crédito es suficiente (desde S1 hasta S5), la máquina dispensa el producto (dispense se activa) y el crédito se reinicia a cero (S0). La salida c proporciona una representación del crédito acumulado en cada momento.
+
+
+
+___
 Y se requiere crear una maquina de estado Mealy
 
 ~~~ SystemVerilog
